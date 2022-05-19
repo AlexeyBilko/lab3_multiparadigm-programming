@@ -67,3 +67,71 @@ datatype move = Discard of card | Draw
 exception IllegalMove
 
 (* put your solutions for problem 2 here *)
+(*a*)
+fun card_color(card, _) =
+   case card of
+      Clubs => Black | Spades => Black | others => Red;
+
+(*b*)
+fun card_value(_, card) =
+   case card of
+      Ace => 11 | Num int => int | others => 10;
+
+(*c*)
+fun remove_card(cs: card list, c: card, e) =
+   case cs of
+      [] => raise e | x::xs =>
+         if x = c
+         then xs
+         else x::remove_card(xs, c, e);
+
+(*d*)
+fun all_same_color(cs: card list) =
+   case cs of
+      [] => true | x::[] => true | x::y::xs =>
+         card_color(x) = card_color(y) andalso all_same_color(y::xs);
+
+(*e*)
+fun sum_cards(cs: card list) =
+   let
+      fun tail_recursive_func(cs, sum) = 
+         case cs of
+         [] => sum | x::xs => sum + card_value(x) + sum_cards(xs);
+   in
+      tail_recursive_func(cs, 0)
+   end;
+
+(*f*)
+fun score(cs: card list, goal: int) =
+   let
+      val total_score = sum_cards(cs);
+      val previous_score = if total_score > goal then 3 * abs(total_score - goal) else abs(total_score - goal);
+   in
+      if all_same_color(cs)
+      then previous_score div 2
+      else previous_score
+   end;
+
+(*g*)
+fun officiate(cards_list: card list, moves_list: move list, goal_score: int) =
+   let
+      fun next_move(cards_list, player_cards, moves_list) = 
+         case moves_list of
+         [] => score(player_cards, goal_score) | to_do::xs =>
+            let
+               fun get_card(cards_list, player_cards, moves_list) = 
+                  case cards_list of
+                     [] => score(player_cards, goal_score) | to_do::xs =>
+                           if sum_cards(to_do::player_cards) > goal_score
+                           then score(to_do::player_cards, goal_score)
+                           else next_move(xs, to_do::player_cards, moves_list)
+
+               fun discard_card(cards_list, player_cards, card, moves_list) =
+                  next_move(cards_list, remove_card(player_cards, card, IllegalMove), moves_list);
+            in
+               case to_do of
+                  Draw => get_card(cards_list, player_cards, xs) | Discard card => discard_card(cards_list, player_cards, card, xs)
+            end;
+   in
+      next_move(cards_list, [], moves_list)
+   end;
